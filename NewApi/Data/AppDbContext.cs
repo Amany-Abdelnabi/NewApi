@@ -15,6 +15,7 @@ namespace NewApi.Data          //db
         //Category table
         public DbSet<Category> categories { get; set; }
         public DbSet<item> items { get; set; }
+        public DbSet<User> cats { get; set; }
 
         
 

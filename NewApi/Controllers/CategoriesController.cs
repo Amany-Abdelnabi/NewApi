@@ -1,9 +1,7 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Http;
+﻿using Firebase.Database;
+using Firebase.Database.Query;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using NewApi.Data;
 using NewApi.Models;
 
 namespace NewApi.Controllers
@@ -12,93 +10,119 @@ namespace NewApi.Controllers
     [ApiController]
     public class CategoriesController : ControllerBase
     {
-        public CategoriesController(AppDbContext db)
+        private readonly FirebaseClient _firebaseClient;
+
+        public CategoriesController()
         {
-            _db = db;
+            // 🔗 ضع هنا رابط الـ Firebase Realtime Database  بك
+            _firebaseClient = new FirebaseClient("https://fir-b5c4c-default-rtdb.firebaseio.com/");
         }
-        private readonly AppDbContext _db;
 
-        //for categories
-
+        // ✅ Get all categories
         [HttpGet]
-        public async Task<IActionResult>GetCategories()
+        public async Task<IActionResult> GetCategories()
         {
-            var cats = await _db.categories.ToListAsync();
-            return Ok(cats);
+            var categories = await _firebaseClient
+                .Child("Categories")
+                .OnceAsync<Category>();
 
-        }
-
-
-
-        [HttpGet("id")]
-        public async Task<IActionResult> GetCategories(int id)
-        {
-            var cats = await _db.categories.SingleOrDefaultAsync(x => x.Id == id);
-            if (cats == null)
+            var list = categories.Select(c => new Category
             {
-                return NotFound($"CategoryId{id} not exist");
+                Id = c.Object.Id,
+                Name = c.Object.Name
+            }).ToList();
 
-            }
-            return Ok(cats);
-
+            return Ok(list);
         }
 
+        // ✅ Get category by ID
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetCategory(int id)
+        {
+            var categories = await _firebaseClient
+                .Child("Categories")
+                .OnceAsync<Category>();
 
+            var category = categories.FirstOrDefault(c => c.Object.Id == id);
 
+            if (category == null)
+                return NotFound($"Category with ID {id} not found.");
+
+            return Ok(category.Object);
+        }
+
+        // ✅ Add new category
         [HttpPost]
-        public async Task<IActionResult> addcategory(string category)
+        public async Task<IActionResult> AddCategory([FromBody] Category category)
         {
-            Category c = new() { Name = category };
-            await _db.categories.AddAsync(c);
-            _db.SaveChanges();
-            return Ok(c);
+            await _firebaseClient
+                .Child("Categories")
+                .PostAsync(category);
 
+            return Ok(category);
         }
 
-        [HttpPut]
-        public async Task<IActionResult>updatecategory(Category category)
+        // ✅ Update category (PUT)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category category)
         {
-            var c = await _db.categories.SingleOrDefaultAsync(x => x.Id == category.Id);
-            if(c==null)
-            {
-                return NotFound($"CategoryId{category.Id} not exist");
+            var existing = (await _firebaseClient
+                .Child("Categories")
+                .OnceAsync<Category>())
+                .FirstOrDefault(c => c.Object.Id == id);
 
-            }
-            c.Name = category.Name;
-            _db.SaveChanges();
-            return Ok(c);
+            if (existing == null)
+                return NotFound($"Category with ID {id} not found.");
+
+            await _firebaseClient
+                .Child("Categories")
+                .Child(existing.Key)
+                .PutAsync(category);
+
+            return Ok(category);
         }
 
+        // ✅ Partial update (PATCH)
         [HttpPatch("{id}")]
-
-        public async Task<IActionResult>updatecategorypatch ([FromBody]JsonPatchDocument<Category> category ,[FromRoute] int id)
+        public async Task<IActionResult> UpdateCategoryPatch(int id, [FromBody] JsonPatchDocument<Category> patch)
         {
-            var c = await _db.categories.SingleOrDefaultAsync(x => x.Id ==id);
-            if (c == null)
-            {
-                return NotFound($"CategoryId{id} not exist");
+            var existing = (await _firebaseClient
+                .Child("Categories")
+                .OnceAsync<Category>())
+                .FirstOrDefault(c => c.Object.Id == id);
 
-            }
-            category.ApplyTo(c);
-           await _db.SaveChangesAsync();
-            return Ok(c);
+            if (existing == null)
+                return NotFound($"Category with ID {id} not found.");
+
+            var updatedCategory = existing.Object;
+            patch.ApplyTo(updatedCategory);
+
+            await _firebaseClient
+                .Child("Categories")
+                .Child(existing.Key)
+                .PutAsync(updatedCategory);
+
+            return Ok(updatedCategory);
         }
 
-
+        // ✅ Delete category
         [HttpDelete("{id}")]
-        public async Task<IActionResult>removecategory(int id)
+        public async Task<IActionResult> RemoveCategory(int id)
         {
-            var c = await _db.categories.SingleOrDefaultAsync(x => x.Id ==id);
-            if (c == null)
-            {
-                return NotFound($"CategoryId{id} not exist");
+            var existing = (await _firebaseClient
+                .Child("Categories")
+                .OnceAsync<Category>())
+                .FirstOrDefault(c => c.Object.Id == id);
 
-            }
-            _db.categories.Remove(c);
-            _db.SaveChanges();
-            return Ok(c);
+            if (existing == null)
+                return NotFound($"Category with ID {id} not found.");
+
+            await _firebaseClient
+                .Child("Categories")
+                .Child(existing.Key)
+                .DeleteAsync();
+
+            return Ok($"Category {id} deleted successfully.");
         }
-
-
     }
 }

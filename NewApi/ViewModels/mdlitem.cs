@@ -10,8 +10,8 @@ namespace NewApi.NewFolder
         public string Name { get; set; }
         public double price { get; set; }
 
-        public IFormFile image { get; set; }
-        public int categoryid { get; set; }
+
+        //public int categoryid { get; set; }
 
     }
 }

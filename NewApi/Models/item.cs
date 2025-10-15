@@ -9,15 +9,15 @@ namespace NewApi.Models
 
         [MaxLength(100)]
         public string Name { get; set; }
-        public double price { get; set; } 
+        public double price { get; set; }
 
-        public byte[]? image { get; set; }
+      
 
-        [ForeignKey("category")]
-        public int categoryid { get; set; }
+        //[ForeignKey("category")]
+        //public int categoryid { get; set; }
 
-        //navigation properity
-        public Category category { get; set; }
+        ////navigation properity
+        //public Category category { get; set; }
 
 
 

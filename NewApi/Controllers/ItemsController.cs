@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NewApi.Data;
 using NewApi.Models;
+using System.IO;
+using System.Threading.Tasks;
+using System.Linq;
 using NewApi.NewFolder;
 
 namespace NewApi.Controllers
@@ -11,58 +13,49 @@ namespace NewApi.Controllers
     [ApiController]
     public class ItemsController : ControllerBase
     {
-        public ItemsController(AppDbContext db)
+        private readonly AppDbContext _context;      //db
+
+        public ItemsController(AppDbContext context)
         {
-            _db = db;
+            _context = context;
         }
-        private readonly AppDbContext _db;
-
-
 
         [HttpGet]
         public async Task<IActionResult> GetCategories()
         {
-            var items = await _db.items.ToListAsync();
+            var items = await _context.items.ToListAsync();
             return Ok(items);
-
         }
 
-
-        [HttpGet("id")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> Getitems(int id)
         {
-            var items = await _db.items.SingleOrDefaultAsync(x => x.id == id);
-            if (items == null)
+            var item = await _context.items.SingleOrDefaultAsync(x => x.id == id);
+            if (item == null)
             {
-                return NotFound($"ItemId{id} not exist");
-
+                return NotFound($"ItemId {id} not exist");
             }
-            return Ok(items);
-
+            return Ok(item);
         }
+
         [HttpPost]
         public async Task<IActionResult> AddItem(mdlitem mdl)
         {
-            using var system = new MemoryStream();
-
-            await mdl.image.CopyToAsync(system);
-
             var item = new item()
             {
                 Name = mdl.Name,
-                image = system.ToArray(),
-                categoryid = mdl.categoryid,
+                //categoryid = mdl.categoryid,
                 price = mdl.price
             };
 
-            await _db.items.AddAsync(item);
-            await _db.SaveChangesAsync();
+            await _context.items.AddAsync(item);
+            await _context.SaveChangesAsync();
 
             return Ok(item);
         }
 
-
-
-
     }
 }
+
+
+   

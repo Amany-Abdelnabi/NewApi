@@ -8,8 +8,9 @@ using NewApi.NewFolder;
 
 namespace NewApi.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
+
     public class UsersController : ControllerBase
     {
 
@@ -19,6 +20,9 @@ namespace NewApi.Controllers
         }
 
         private readonly AppDbContext _db;
+
+        [HttpGet("ping")]
+        public IActionResult Ping() => Ok("Ping from UsersController");
 
 
         [HttpGet]
